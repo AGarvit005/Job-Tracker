@@ -30,7 +30,7 @@ class TwilioBot:
         """
         self.config = config
         self.account_sid = config['account_sid']
-        self.auth_token = config['auth_token'] or os.environ.get('TWILIO_AUTH_TOKEN')
+        self.auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
         self.from_number = config['from_number']  # Format: whatsapp:+14155238886
         
         # Initialize Twilio client
