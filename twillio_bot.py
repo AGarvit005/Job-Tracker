@@ -10,7 +10,7 @@ This module handles all Twilio WhatsApp API interactions including:
 Author: Senior Python Developer
 Version: 1.0
 """
-
+import os
 import logging
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
@@ -30,7 +30,7 @@ class TwilioBot:
         """
         self.config = config
         self.account_sid = config['account_sid']
-        self.auth_token = config['auth_token']
+        self.auth_token = config['auth_token'] or os.environ.get('TWILIO_AUTH_TOKEN')
         self.from_number = config['from_number']  # Format: whatsapp:+14155238886
         
         # Initialize Twilio client
