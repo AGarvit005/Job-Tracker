@@ -41,6 +41,17 @@ app = Flask(__name__)
 with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
 
+def write_google_credentials():
+    creds_json = os.environ.get('google_credentials.json')
+    if creds_json:
+        credentials_path = '/tmp/google_credentials1.json'
+        with open(credentials_path, 'w') as f:
+            f.write(creds_json)
+        print(f"Google credentials written to {credentials_path}")
+    else:
+        raise RuntimeError("Environment variable GOOGLE_APPLICATION_CREDENTIALS_JSON is not set")
+
+write_google_credentials()
 # Initialize managers
 try:
     sheets_manager = GoogleSheetsManager(config['google_sheets'])
