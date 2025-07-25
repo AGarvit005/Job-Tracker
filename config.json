@@ -1,11 +1,11 @@
 {
   "twilio": {
-    "account_sid": "ACe329d0fd0a0c032152676f5a72f9449c",
-    "auth_token": "3c8679770ff57f9056f9a2998cf1fb16",
+    "account_sid": "",
+    "auth_token": ,
     "from_number": "whatsapp:+14155238886"
   },
   "google_sheets": {
-    "spreadsheet_id": "1oWWPVOliMC9bIceq3ISTbvw4kNkGoXL_rS7Uq8iOLt8",
+    "spreadsheet_id": "",
     "credentials_file": "google_credentials.json"
   },
   "flask": {
