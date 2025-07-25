@@ -1,7 +1,6 @@
 # Core Framework
 Flask==2.3.3
 Werkzeug==2.3.7
-python==3.12.13
 
 
 # Twilio WhatsApp API
