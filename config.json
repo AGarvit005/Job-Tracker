@@ -1,0 +1,48 @@
+{
+  "twilio": {
+    "account_sid": "ACe329d0fd0a0c032152676f5a72f9449c",
+    "auth_token": "3c8679770ff57f9056f9a2998cf1fb16",
+    "from_number": "whatsapp:+14155238886"
+  },
+  "google_sheets": {
+    "spreadsheet_id": "1oWWPVOliMC9bIceq3ISTbvw4kNkGoXL_rS7Uq8iOLt8",
+    "credentials_file": "google_credentials.json"
+  },
+  "flask": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "base_url": "http://localhost:5000"
+  },
+  "reminders": {
+    "daily_reminder_hour": 9,
+    "daily_reminder_minute": 0,
+    "applied_reminder_hour": 1,
+    "applied_reminder_minute": 0,
+    "timezone": "UTC"
+  },
+  "features": {
+    "enable_reminders": true,
+    "enable_multi_user": true,
+    "enable_stats": true,
+    "max_jobs_per_user": 1000,
+    "max_message_length": 1000
+  },
+  "messages": {
+    "welcome_message": "👋 Welcome to Job Application Tracker!\n\nSend me updates like:\n• Amazon (15 Aug) - Applied\n• Google - Not Applied\n\nOr commands like 'Show Applied', 'Stats', 'Help'",
+    "help_footer": "\n💡 Need more help? Visit our documentation or contact support.",
+    "error_generic": "❌ Something went wrong. Please try again later.",
+    "success_generic": "✅ Done!"
+  },
+  "limits": {
+    "rate_limit_per_minute": 30,
+    "max_companies_per_message": 5,
+    "max_reminders_per_user": 100
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "job_tracker.log",
+    "max_file_size": "10MB",
+    "backup_count": 5
+  }
+}

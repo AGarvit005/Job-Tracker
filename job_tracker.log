@@ -1,0 +1,2 @@
+2025-07-25 12:20:32,562 - google_sheets - INFO - Google Sheets client initialized successfully
+2025-07-25 12:20:32,565 - __main__ - ERROR - Failed to initialize managers: 'charmap' codec can't decode byte 0x9d in position 1144: character maps to <undefined>
