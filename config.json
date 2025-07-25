@@ -5,7 +5,7 @@
   },
   "google_sheets": {
     "spreadsheet_id": "1oWWPVOliMC9bIceq3ISTbvw4kNkGoXL_rS7Uq8iOLt8",
-    "credentials_file": "google_credentials.json"
+    "credentials_file": "/tmp/google_credentials.json"
   },
   "flask": {
     "host": "0.0.0.0",
