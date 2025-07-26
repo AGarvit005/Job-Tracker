@@ -11,14 +11,14 @@
     "host": "0.0.0.0",
     "port": 5000,
     "debug": false,
-    "base_url": "http://localhost:5000"
+    "base_url": "https://job-tracker-1-9su6.onrender.com"
   },
   "reminders": {
     "daily_reminder_hour": 9,
     "daily_reminder_minute": 0,
     "applied_reminder_hour": 11,
     "applied_reminder_minute": 0,
-    "timezone": "IST"
+    "timezone": "Asia/Kolkata"
   },
   "features": {
     "enable_reminders": true,
