@@ -16,7 +16,7 @@
   "reminders": {
     "daily_reminder_hour": 9,
     "daily_reminder_minute": 0,
-    "applied_reminder_hour": 11,
+    "applied_reminder_hour": 1,
     "applied_reminder_minute": 0,
     "timezone": "Asia/Kolkata"
   },
