@@ -1,16 +1,11 @@
 """
-Scheduler Manager for Job Application Reminders
+Scheduler Manager for Job Application Reminders - FIXED VERSION
 ===============================================
 
-This module handles all scheduled tasks including:
-- Daily reminders for "Not Applied" jobs
-- Application date reminders for "Applied" jobs
-- Storing reminders directly in Google Sheets
-
-Uses Google Sheets as storage instead of memory.
+Fixed the user ID matching issue and added debug logging.
 
 Author: Senior Python Developer
-Version: 1.0 (Fixed)
+Version: 1.1 (Fixed)
 """
 
 import logging
@@ -116,6 +111,8 @@ class SchedulerManager:
             application_date: Date when application is due
         """
         try:
+            logger.info(f"Scheduling applied reminder for user {user_id}, company {company}, date {application_date}")
+            
             # Parse the application date
             parsed_date = self._parse_date(application_date)
             if not parsed_date:
@@ -154,7 +151,7 @@ class SchedulerManager:
                     datetime.now().isoformat()
                 ])
                 
-                logger.info(f"Stored applied reminder for {company} in Google Sheets")
+                logger.info(f"Stored applied reminder for {company} in Google Sheets with user_id: {user_id}")
             
         except Exception as e:
             logger.error(f"Error scheduling applied reminder: {e}")
@@ -168,6 +165,8 @@ class SchedulerManager:
             company: Company name
         """
         try:
+            logger.info(f"Scheduling daily reminder for user {user_id}, company {company}")
+            
             # Get reminder time from config
             reminder_config = self.config.get('reminders', {})
             reminder_hour = reminder_config.get('daily_reminder_hour', 9)
@@ -197,7 +196,7 @@ class SchedulerManager:
                     datetime.now().isoformat()
                 ])
                 
-                logger.info(f"Stored daily reminder for {company} in Google Sheets")
+                logger.info(f"Stored daily reminder for {company} in Google Sheets with user_id: {user_id}")
             
         except Exception as e:
             logger.error(f"Error scheduling daily reminder: {e}")
@@ -493,18 +492,29 @@ class SchedulerManager:
             Dictionary with reminder summary
         """
         try:
+            logger.info(f"Getting reminder summary for user: {user_id}")
+            
             worksheet = self._get_reminders_worksheet()
             if not worksheet:
+                logger.warning("Could not get reminders worksheet")
                 return self._empty_summary()
             
             records = worksheet.get_all_records()
+            logger.info(f"Found {len(records)} total records in reminders sheet")
+            
             user_reminders = []
             
-            # Filter reminders for this user that are pending
-            for record in records:
-                if (record.get('User ID') == user_id and 
-                    record.get('Status') == 'pending'):
+            # Debug: Log all records to see what's in the sheet
+            for i, record in enumerate(records):
+                logger.info(f"Record {i}: User ID='{record.get('User ID')}', Company='{record.get('Company')}', Status='{record.get('Status')}'")
+                
+                # Filter reminders for this user that are pending
+                if (str(record.get('User ID', '')).strip() == str(user_id).strip() and 
+                    str(record.get('Status', '')).strip().lower() == 'pending'):
                     user_reminders.append(record)
+                    logger.info(f"Matched reminder for user {user_id}: {record.get('Company')} - {record.get('Reminder Type')}")
+            
+            logger.info(f"Found {len(user_reminders)} reminders for user {user_id}")
             
             summary = {
                 'total_reminders': len(user_reminders),
@@ -519,6 +529,8 @@ class SchedulerManager:
             for reminder in user_reminders:
                 reminder_type = reminder.get('Reminder Type', '')
                 company = reminder.get('Company', 'Unknown')
+                
+                logger.info(f"Processing reminder: {company} - {reminder_type}")
                 
                 # Count by type
                 if reminder_type == 'daily':
@@ -550,7 +562,8 @@ class SchedulerManager:
                             
                             next_run = next_run_time.isoformat()
                             next_run_times.append(next_run_time)
-                    except:
+                    except Exception as e:
+                        logger.error(f"Error calculating next run time: {e}")
                         pass
                 
                 # Add to companies list
@@ -565,6 +578,7 @@ class SchedulerManager:
                 earliest = min(next_run_times)
                 summary['next_reminder'] = earliest.isoformat()
             
+            logger.info(f"Reminder summary for {user_id}: {summary}")
             return summary
             
         except Exception as e:
