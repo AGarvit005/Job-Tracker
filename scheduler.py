@@ -56,7 +56,7 @@ class SchedulerManager:
             jobstores=jobstores,
             executors=executors,
             job_defaults=job_defaults,
-            timezone='IST'
+            timezone='Asia/Kolkata'
         )
         
         logger.info("Scheduler manager initialized")
@@ -194,7 +194,7 @@ class SchedulerManager:
         try:
             # Get the Flask app URL from config
             app_config = self.config.get('flask', {})
-            base_url = app_config.get('base_url', 'http://localhost:5000')
+            base_url = app_config.get('base_url', 'https://job-tracker-1-9su6.onrender.com')
             
             # Send POST request to the reminder endpoint
             response = requests.post(
