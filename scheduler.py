@@ -220,7 +220,11 @@ class SchedulerManager:
             
             # Find rows to delete (collect row numbers first)
             for i, record in enumerate(records):
-                if (record.get('User ID') == user_id and 
+                # Normalize user IDs for comparison
+                sheet_user_id = str(record.get('User ID', '')).strip().lstrip('+')
+                lookup_user_id = str(user_id).strip().lstrip('+')
+                
+                if (sheet_user_id == lookup_user_id and 
                     record.get('Company') == company and 
                     record.get('Status') == 'pending'):
                     rows_to_delete.append(i + 2)  # +2 because sheets are 1-indexed and we have headers
@@ -437,8 +441,13 @@ class SchedulerManager:
                     continue
                     
                 # Filter by user if specified
-                if user_id and record.get('User ID') != user_id:
-                    continue
+                if user_id:
+                    # Normalize user IDs for comparison
+                    sheet_user_id = str(record.get('User ID', '')).strip().lstrip('+')
+                    lookup_user_id = str(user_id).strip().lstrip('+')
+                    
+                    if sheet_user_id != lookup_user_id:
+                        continue
                 
                 # Calculate next run time
                 next_run = None
@@ -619,7 +628,11 @@ class SchedulerManager:
             rescheduled_count = 0
             
             for i, record in enumerate(records):
-                if (record.get('User ID') == user_id and 
+                # Normalize user IDs for comparison
+                sheet_user_id = str(record.get('User ID', '')).strip().lstrip('+')
+                lookup_user_id = str(user_id).strip().lstrip('+')
+                
+                if (sheet_user_id == lookup_user_id and 
                     record.get('Reminder Type') == 'daily' and 
                     record.get('Status') == 'pending'):
                     
