@@ -508,8 +508,14 @@ class SchedulerManager:
             for i, record in enumerate(records):
                 logger.info(f"Record {i}: User ID='{record.get('User ID')}', Company='{record.get('Company')}', Status='{record.get('Status')}'")
                 
+                # Normalize both user IDs for comparison (remove + sign and whitespace)
+                sheet_user_id = str(record.get('User ID', '')).strip().lstrip('+')
+                lookup_user_id = str(user_id).strip().lstrip('+')
+                
+                logger.info(f"Comparing: sheet_user_id='{sheet_user_id}' vs lookup_user_id='{lookup_user_id}'")
+                
                 # Filter reminders for this user that are pending
-                if (str(record.get('User ID', '')).strip() == str(user_id).strip() and 
+                if (sheet_user_id == lookup_user_id and 
                     str(record.get('Status', '')).strip().lower() == 'pending'):
                     user_reminders.append(record)
                     logger.info(f"Matched reminder for user {user_id}: {record.get('Company')} - {record.get('Reminder Type')}")
