@@ -294,7 +294,7 @@ class SchedulerManager:
                 job_info = {
                     'id': job.id,
                     'name': job.name,
-                    'next_run': job.next_run.isoformat() if job.next_run else None,
+                    'next_run': job.next_run_time.isoformat() if hasattr(job, 'next_run_time') and job.next_run_time else None,
                     'trigger': str(job.trigger)
                 }
                 job_list.append(job_info)
