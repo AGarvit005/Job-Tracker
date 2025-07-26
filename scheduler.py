@@ -99,10 +99,10 @@ class SchedulerManager:
             naive_reminder_time = datetime.combine(parsed_date.date(), time(1, 0))
             IST = pytz.timezone('Asia/Kolkata')
             reminder_time = IST.localize(naive_reminder_time)
-
+            now = datetime.now(IST)
             
             # Only schedule if the date is in the future
-            if reminder_time <= datetime.now():
+            if reminder_time <= now:
                 logger.info(f"Application date {application_date} is in the past, skipping reminder")
                 return
             
