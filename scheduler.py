@@ -96,9 +96,9 @@ class SchedulerManager:
                 return
             
             # Set reminder time to 1:00 AM on the application date
-            naive-reminder_time = datetime.combine(parsed_date.date(), time(1, 0))
+            naive_reminder_time = datetime.combine(parsed_date.date(), time(1, 0))
             IST = pytz.timezone('Asia/Kolkata')
-            reminder_time = IST.localize(naive-reminder_time)
+            reminder_time = IST.localize(naive_reminder_time)
 
             
             # Only schedule if the date is in the future
