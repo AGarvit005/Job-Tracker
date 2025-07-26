@@ -23,6 +23,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from typing import Dict, Any
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,10 @@ class SchedulerManager:
                 return
             
             # Set reminder time to 1:00 AM on the application date
-            reminder_time = datetime.combine(parsed_date.date(), time(1, 0))
+            naive-reminder_time = datetime.combine(parsed_date.date(), time(1, 0))
+            IST = pytz.timezone('Asia/Kolkata')
+            reminder_time = IST.localize(naive_reminder_time)
+
             
             # Only schedule if the date is in the future
             if reminder_time <= datetime.now():
