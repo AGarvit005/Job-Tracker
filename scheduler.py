@@ -10,7 +10,7 @@ This module handles all scheduled tasks including:
 Uses Google Sheets as storage instead of memory.
 
 Author: Senior Python Developer
-Version: 1.0
+Version: 1.0 (Fixed)
 """
 
 import logging
@@ -217,15 +217,24 @@ class SchedulerManager:
             
             # Get all reminders
             records = worksheet.get_all_records()
-            removed_count = 0
+            rows_to_delete = []
             
-            # Find and remove reminders for this user and company
-            for i, record in enumerate(records, start=2):  # Start from row 2 (after headers)
-                if (record['User ID'] == user_id and 
-                    record['Company'] == company and 
-                    record['Status'] == 'pending'):
-                    worksheet.delete_rows(i - removed_count)  # Adjust for already deleted rows
+            # Find rows to delete (collect row numbers first)
+            for i, record in enumerate(records):
+                if (record.get('User ID') == user_id and 
+                    record.get('Company') == company and 
+                    record.get('Status') == 'pending'):
+                    rows_to_delete.append(i + 2)  # +2 because sheets are 1-indexed and we have headers
+            
+            # Delete rows in reverse order to avoid index shifting issues
+            removed_count = 0
+            for row_num in reversed(rows_to_delete):
+                try:
+                    worksheet.delete_rows(row_num)
                     removed_count += 1
+                    logger.info(f"Deleted reminder row {row_num}")
+                except Exception as e:
+                    logger.error(f"Error deleting row {row_num}: {e}")
             
             logger.info(f"Cancelled {removed_count} reminders for {company}")
             
@@ -240,10 +249,21 @@ class SchedulerManager:
                 return
             
             records = worksheet.get_all_records()
-            for i, record in enumerate(records, start=2):
-                if record['Reminder ID'] == reminder_id:
-                    worksheet.delete_rows(i)
+            row_to_delete = None
+            
+            # Find the row to delete
+            for i, record in enumerate(records):
+                if record.get('Reminder ID') == reminder_id:
+                    row_to_delete = i + 2  # +2 for 1-indexing and headers
                     break
+            
+            # Delete the row if found
+            if row_to_delete:
+                try:
+                    worksheet.delete_rows(row_to_delete)
+                    logger.info(f"Removed reminder {reminder_id} from row {row_to_delete}")
+                except Exception as e:
+                    logger.error(f"Error deleting reminder row {row_to_delete}: {e}")
                     
         except Exception as e:
             logger.error(f"Error removing reminder from sheet: {e}")
@@ -258,46 +278,58 @@ class SchedulerManager:
             records = worksheet.get_all_records()
             now = datetime.now(pytz.timezone('Asia/Kolkata'))
             sent_count = 0
+            rows_to_update = []
             
-            for i, record in enumerate(records, start=2):
-                if record['Status'] != 'pending':
+            for i, record in enumerate(records):
+                if record.get('Status') != 'pending':
                     continue
                 
                 should_send = False
+                row_num = i + 2  # +2 for 1-indexing and headers
                 
-                if record['Reminder Type'] == 'applied':
+                if record.get('Reminder Type') == 'applied':
                     # Check if it's time for applied reminder
                     try:
                         trigger_time = datetime.fromisoformat(record['Trigger Time'])
                         if now >= trigger_time:
                             should_send = True
-                    except:
+                    except Exception as e:
+                        logger.error(f"Error parsing applied reminder time: {e}")
                         continue
                         
-                elif record['Reminder Type'] == 'daily':
+                elif record.get('Reminder Type') == 'daily':
                     # Check if it's time for daily reminder
-                    trigger_info = record['Trigger Time']
+                    trigger_info = record.get('Trigger Time', '')
                     if trigger_info.startswith('daily_'):
-                        time_part = trigger_info.replace('daily_', '')
-                        hour, minute = map(int, time_part.split(':'))
-                        
-                        # Check if current time matches the daily reminder time
-                        if now.hour == hour and now.minute == minute:
-                            should_send = True
+                        try:
+                            time_part = trigger_info.replace('daily_', '')
+                            hour, minute = map(int, time_part.split(':'))
+                            
+                            # Check if current time matches the daily reminder time
+                            if now.hour == hour and now.minute == minute:
+                                should_send = True
+                        except Exception as e:
+                            logger.error(f"Error parsing daily reminder time: {e}")
+                            continue
                 
                 if should_send:
                     # Send the reminder
-                    result = self._send_reminder(record['User ID'], record['Message'])
+                    result = self._send_reminder(record.get('User ID'), record.get('Message'))
                     if result:
-                        # Mark as sent and update timestamp
-                        worksheet.update(f'G{i}', 'sent')  # Status column
                         sent_count += 1
                         
-                        # For applied reminders, they're one-time, so we can mark as sent
-                        # For daily reminders, we reset them for next day
-                        if record['Reminder Type'] == 'daily':
-                            # Reset status to pending for next day
-                            worksheet.update(f'G{i}', 'pending')
+                        # For applied reminders, mark as sent (one-time)
+                        if record.get('Reminder Type') == 'applied':
+                            rows_to_update.append((row_num, 'sent'))
+                        # For daily reminders, keep as pending for next day
+                        # (they will be checked again tomorrow)
+            
+            # Update status for sent reminders
+            for row_num, status in rows_to_update:
+                try:
+                    worksheet.update(f'G{row_num}', status)  # Status column
+                except Exception as e:
+                    logger.error(f"Error updating reminder status for row {row_num}: {e}")
             
             if sent_count > 0:
                 logger.info(f"Sent {sent_count} reminders")
@@ -401,23 +433,25 @@ class SchedulerManager:
             reminders = []
             
             for record in records:
-                if record['Status'] != 'pending':
+                # Skip non-pending reminders
+                if record.get('Status') != 'pending':
                     continue
                     
-                if user_id and record['User ID'] != user_id:
+                # Filter by user if specified
+                if user_id and record.get('User ID') != user_id:
                     continue
                 
                 # Calculate next run time
                 next_run = None
-                if record['Reminder Type'] == 'applied':
+                if record.get('Reminder Type') == 'applied':
                     try:
-                        next_run = record['Trigger Time']
+                        next_run = record.get('Trigger Time')
                     except:
                         pass
-                elif record['Reminder Type'] == 'daily':
+                elif record.get('Reminder Type') == 'daily':
                     # For daily reminders, calculate next occurrence
                     try:
-                        trigger_info = record['Trigger Time']
+                        trigger_info = record.get('Trigger Time', '')
                         if trigger_info.startswith('daily_'):
                             time_part = trigger_info.replace('daily_', '')
                             hour, minute = map(int, time_part.split(':'))
@@ -430,14 +464,15 @@ class SchedulerManager:
                                 next_run_time += timedelta(days=1)
                                 
                             next_run = next_run_time.isoformat()
-                    except:
+                    except Exception as e:
+                        logger.error(f"Error calculating next run for daily reminder: {e}")
                         pass
                 
                 reminder_info = {
-                    'id': record['Reminder ID'],
-                    'name': f"{record['Reminder Type'].title()} Reminder - {record['Company']}",
+                    'id': record.get('Reminder ID', ''),
+                    'name': f"{record.get('Reminder Type', '').title()} Reminder - {record.get('Company', '')}",
                     'next_run': next_run,
-                    'trigger': record['Trigger Time']
+                    'trigger': record.get('Trigger Time', '')
                 }
                 reminders.append(reminder_info)
             
@@ -458,63 +493,93 @@ class SchedulerManager:
             Dictionary with reminder summary
         """
         try:
-            reminders = self.get_scheduled_jobs(user_id)
+            worksheet = self._get_reminders_worksheet()
+            if not worksheet:
+                return self._empty_summary()
+            
+            records = worksheet.get_all_records()
+            user_reminders = []
+            
+            # Filter reminders for this user that are pending
+            for record in records:
+                if (record.get('User ID') == user_id and 
+                    record.get('Status') == 'pending'):
+                    user_reminders.append(record)
             
             summary = {
-                'total_reminders': len(reminders),
+                'total_reminders': len(user_reminders),
                 'daily_reminders': 0,
                 'applied_reminders': 0,
                 'next_reminder': None,
                 'companies_with_reminders': []
             }
             
-            next_run = None
+            next_run_times = []
             
-            for reminder in reminders:
-                if 'daily_reminder' in reminder['id']:
+            for reminder in user_reminders:
+                reminder_type = reminder.get('Reminder Type', '')
+                company = reminder.get('Company', 'Unknown')
+                
+                # Count by type
+                if reminder_type == 'daily':
                     summary['daily_reminders'] += 1
-                elif 'applied_reminder' in reminder['id']:
+                elif reminder_type == 'applied':
                     summary['applied_reminders'] += 1
                 
-                # Extract company name
-                if 'daily_reminder' in reminder['id']:
-                    parts = reminder['id'].split('_')
-                    company = parts[3] if len(parts) > 3 else "Unknown"
-                elif 'applied_reminder' in reminder['id']:
-                    parts = reminder['id'].split('_')
-                    company = parts[3] if len(parts) > 3 else "Unknown"
-                else:
-                    company = "Unknown"
-                
-                summary['companies_with_reminders'].append({
-                    'company': company,
-                    'type': 'daily' if 'daily_reminder' in reminder['id'] else 'applied',
-                    'next_run': reminder['next_run']
-                })
-                
-                # Track earliest next run time
-                if reminder['next_run']:
+                # Calculate next run time
+                next_run = None
+                if reminder_type == 'applied':
                     try:
-                        reminder_next_run = datetime.fromisoformat(reminder['next_run'].replace('Z', '+00:00'))
-                        if not next_run or reminder_next_run < next_run:
-                            next_run = reminder_next_run
+                        next_run = reminder.get('Trigger Time')
+                        if next_run:
+                            next_run_times.append(datetime.fromisoformat(next_run))
                     except:
                         pass
+                elif reminder_type == 'daily':
+                    try:
+                        trigger_info = reminder.get('Trigger Time', '')
+                        if trigger_info.startswith('daily_'):
+                            time_part = trigger_info.replace('daily_', '')
+                            hour, minute = map(int, time_part.split(':'))
+                            
+                            now = datetime.now(pytz.timezone('Asia/Kolkata'))
+                            next_run_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                            
+                            if next_run_time <= now:
+                                next_run_time += timedelta(days=1)
+                            
+                            next_run = next_run_time.isoformat()
+                            next_run_times.append(next_run_time)
+                    except:
+                        pass
+                
+                # Add to companies list
+                summary['companies_with_reminders'].append({
+                    'company': company,
+                    'type': reminder_type,
+                    'next_run': next_run
+                })
             
-            if next_run:
-                summary['next_reminder'] = next_run.isoformat()
+            # Find earliest next reminder
+            if next_run_times:
+                earliest = min(next_run_times)
+                summary['next_reminder'] = earliest.isoformat()
             
             return summary
             
         except Exception as e:
             logger.error(f"Error getting reminder summary: {e}")
-            return {
-                'total_reminders': 0,
-                'daily_reminders': 0,
-                'applied_reminders': 0,
-                'next_reminder': None,
-                'companies_with_reminders': []
-            }
+            return self._empty_summary()
+    
+    def _empty_summary(self) -> Dict[str, Any]:
+        """Return empty reminder summary"""
+        return {
+            'total_reminders': 0,
+            'daily_reminders': 0,
+            'applied_reminders': 0,
+            'next_reminder': None,
+            'companies_with_reminders': []
+        }
     
     def reschedule_daily_reminders(self, user_id: str, new_hour: int, new_minute: int = 0):
         """
@@ -533,15 +598,20 @@ class SchedulerManager:
             records = worksheet.get_all_records()
             rescheduled_count = 0
             
-            for i, record in enumerate(records, start=2):
-                if (record['User ID'] == user_id and 
-                    record['Reminder Type'] == 'daily' and 
-                    record['Status'] == 'pending'):
+            for i, record in enumerate(records):
+                if (record.get('User ID') == user_id and 
+                    record.get('Reminder Type') == 'daily' and 
+                    record.get('Status') == 'pending'):
+                    
+                    row_num = i + 2  # +2 for 1-indexing and headers
                     
                     # Update trigger time
                     new_trigger = f"daily_{new_hour:02d}:{new_minute:02d}"
-                    worksheet.update(f'E{i}', new_trigger)  # Trigger Time column
-                    rescheduled_count += 1
+                    try:
+                        worksheet.update(f'E{row_num}', new_trigger)  # Trigger Time column
+                        rescheduled_count += 1
+                    except Exception as e:
+                        logger.error(f"Error updating trigger time for row {row_num}: {e}")
             
             logger.info(f"Rescheduled {rescheduled_count} daily reminders for user {user_id} to {new_hour}:{new_minute:02d}")
             
