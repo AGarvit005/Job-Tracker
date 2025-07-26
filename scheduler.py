@@ -288,7 +288,7 @@ class SchedulerManager:
             job_list = []
             
             for job in jobs:
-                if user_id and f"_{user_id}_" not in job.id:
+                if user_id and user_id not in job.id:
                     continue
                 
                 job_info = {
