@@ -210,6 +210,8 @@ class SchedulerManager:
             company: Company name
         """
         try:
+            logger.info(f"Cancelling reminders for user {user_id}, company {company}")
+            
             worksheet = self._get_reminders_worksheet()
             if not worksheet:
                 return
@@ -218,16 +220,26 @@ class SchedulerManager:
             records = worksheet.get_all_records()
             rows_to_delete = []
             
+            logger.info(f"Found {len(records)} total records in reminders sheet")
+            
             # Find rows to delete (collect row numbers first)
             for i, record in enumerate(records):
+                logger.info(f"Checking record {i}: User ID='{record.get('User ID')}', Company='{record.get('Company')}', Status='{record.get('Status')}'")
+                
                 # Normalize user IDs for comparison
                 sheet_user_id = str(record.get('User ID', '')).strip().lstrip('+')
                 lookup_user_id = str(user_id).strip().lstrip('+')
+                
+                logger.info(f"Normalized comparison: sheet_user_id='{sheet_user_id}' vs lookup_user_id='{lookup_user_id}'")
+                logger.info(f"Company comparison: sheet_company='{record.get('Company')}' vs lookup_company='{company}'")
                 
                 if (sheet_user_id == lookup_user_id and 
                     record.get('Company') == company and 
                     record.get('Status') == 'pending'):
                     rows_to_delete.append(i + 2)  # +2 because sheets are 1-indexed and we have headers
+                    logger.info(f"Found matching reminder to delete at row {i + 2}")
+            
+            logger.info(f"Found {len(rows_to_delete)} reminders to delete")
             
             # Delete rows in reverse order to avoid index shifting issues
             removed_count = 0
