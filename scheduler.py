@@ -21,7 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.memory import MemoryJobStore
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.jobstores.rdb import RDBJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from typing import Dict, Any
 import pytz
@@ -40,7 +40,7 @@ class SchedulerManager:
         
         # Configure APScheduler
         jobstores = {
-            'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
+            'default': RDBJobStore(url='sqlite:///jobs.sqlite')
         }
         
         executors = {
