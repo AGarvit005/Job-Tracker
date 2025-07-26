@@ -56,7 +56,7 @@ class SchedulerManager:
             jobstores=jobstores,
             executors=executors,
             job_defaults=job_defaults,
-            timezone='UTC'
+            timezone='IST'
         )
         
         logger.info("Scheduler manager initialized")
