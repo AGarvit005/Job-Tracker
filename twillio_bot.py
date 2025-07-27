@@ -1,20 +1,17 @@
 """
-Twilio WhatsApp Bot for Job Application Tracker
+Twilio WhatsApp Bot for Job Application Tracker - FIXED VERSION
 ===============================================
 
-This module handles all Twilio WhatsApp API interactions including:
-- Sending messages to users
-- Formatting messages for WhatsApp
-- Managing Twilio client configuration
+Fixed the integer phone number issue by ensuring proper type conversion.
 
 Author: Senior Python Developer
-Version: 1.0
+Version: 1.1 (Fixed)
 """
 import os
 import logging
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 logger = logging.getLogger(__name__)
 
@@ -41,20 +38,32 @@ class TwilioBot:
             logger.error(f"Failed to initialize Twilio client: {e}")
             raise
     
-    def send_message(self, to_number: str, message: str) -> Dict[str, Any]:
+    def send_message(self, to_number: Union[str, int], message: str) -> Dict[str, Any]:
         """
         Send a WhatsApp message to a user
         
         Args:
-            to_number: Recipient's phone number (without whatsapp: prefix)
+            to_number: Recipient's phone number (string or integer, without whatsapp: prefix)
             message: Message content to send
             
         Returns:
             Dictionary with success status and message info
         """
         try:
+            # Convert to string if it's an integer
+            to_number_str = str(to_number)
+            
             # Format the recipient number for WhatsApp
-            formatted_to = f"whatsapp:{to_number}" if not to_number.startswith('whatsapp:') else to_number
+            formatted_to = f"whatsapp:{to_number_str}" if not to_number_str.startswith('whatsapp:') else to_number_str
+            
+            # Ensure the number starts with + if it doesn't already
+            if not formatted_to.startswith('whatsapp:+'):
+                # Extract just the number part
+                number_part = formatted_to.replace('whatsapp:', '')
+                if not number_part.startswith('+'):
+                    formatted_to = f"whatsapp:+{number_part}"
+            
+            logger.info(f"Attempting to send message to {formatted_to}")
             
             # Send the message
             message_obj = self.client.messages.create(
@@ -86,12 +95,12 @@ class TwilioBot:
                 'error': f"Unexpected error: {str(e)}"
             }
     
-    def send_bulk_message(self, recipients: List[str], message: str) -> Dict[str, Any]:
+    def send_bulk_message(self, recipients: List[Union[str, int]], message: str) -> Dict[str, Any]:
         """
         Send the same message to multiple recipients
         
         Args:
-            recipients: List of phone numbers
+            recipients: List of phone numbers (strings or integers)
             message: Message content to send
             
         Returns:
@@ -109,13 +118,13 @@ class TwilioBot:
             
             if result['success']:
                 results['successful'].append({
-                    'number': recipient,
+                    'number': str(recipient),
                     'message_sid': result['message_sid']
                 })
                 results['total_sent'] += 1
             else:
                 results['failed'].append({
-                    'number': recipient,
+                    'number': str(recipient),
                     'error': result['error']
                 })
                 results['total_failed'] += 1
@@ -361,22 +370,26 @@ class TwilioBot:
                 'error': str(e)
             }
     
-    def validate_phone_number(self, phone_number: str) -> bool:
+    def validate_phone_number(self, phone_number: Union[str, int]) -> bool:
         """
         Basic validation for phone number format
         
         Args:
-            phone_number: Phone number to validate
+            phone_number: Phone number to validate (string or integer)
             
         Returns:
             True if format appears valid
         """
+        # Convert to string first
+        phone_str = str(phone_number)
+        
         # Remove whatsapp: prefix if present
-        number = phone_number.replace('whatsapp:', '')
+        number = phone_str.replace('whatsapp:', '')
         
         # Basic validation - should start with + and contain only digits and +
         if not number.startswith('+'):
-            return False
+            # If it doesn't start with +, assume it's a valid number and add +
+            number = f"+{number}"
         
         # Remove + and check if remaining characters are digits
         digits_only = number[1:]
