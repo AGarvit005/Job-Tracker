@@ -48,6 +48,8 @@ try:
     twilio_bot = TwilioBot(config['twilio'])
     message_parser = MessageParser()
     command_handler = CommandHandler(sheets_manager, scheduler_manager, twilio_bot)
+
+    scheduler_manager.start()
     
     logger.info("All managers initialized successfully")
 except Exception as e:
@@ -184,7 +186,7 @@ def get_stats():
 
 if __name__ == '__main__':
     # Start the scheduler
-    scheduler_manager.start()
+    #scheduler_manager.start() moved to the top 
     
     # Get configuration
     debug_mode = config.get('flask', {}).get('debug', False)
